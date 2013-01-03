@@ -1,0 +1,96 @@
+<% debug = false %>
+
+_.extend Backbone.Model,
+  
+  onAlive: (object, events, callback, context)->
+    <% if debug %>
+    console.log "#{@constructor.name}.onAlive", object, events, callback, context
+    <% end %>
+    
+    currentOnDie = @_onDie
+    @_onDie = ->
+      object.off events, callback, context
+      currentOnDie?()
+    object.on events, callback, context, true
+  
+  die: ->
+    <% if debug %>
+    console.log "#{@constructor.name}.die"
+    <% end %>
+    
+    @_onDie?()
+    @onDie?()
+    false
+
+_.extend Backbone.Collection,
+  
+  onAlive: (object, events, callback, context)->
+    <% if debug %>
+    console.log "#{@constructor.name}.onAlive", object, events, callback, context
+    <% end %>
+    
+    currentOnDie = @_onDie
+    @_onDie = ->
+      object.off events, callback, context
+      currentOnDie?()
+    object.on events, callback, context, true
+  
+  die: ->
+    <% if debug %>
+    console.log "#{@constructor.name}.die"
+    <% end %>
+    
+    @_onDie?()
+    @onDie?()
+    false
+
+class Backbone.View extends (Backbone.OldView = Backbone.View)
+  
+  constructor: (options)->
+    view = this
+    @I18n =
+      t: (k, v = {})->
+        k = "#{view.I18n_namespace}.#{k}" if view.I18n_namespace
+        I18n.t k, v
+    @_closed = false
+    
+    super options
+  
+  onAlive: (object, events, callback, context)->
+    currentOnDie = @onDie
+    @onDie = ->
+      object.off events, callback, context
+      currentOnDie?()
+    object.on events, callback, context, true
+  
+  close: (e)=>
+    <% if debug %>
+    console.log "#{@constructor.name}.close"
+    <% end %>
+    
+    @killEvent e
+    @remove()
+    @unbind()
+    @onDie?()
+    @onClose?()
+    @_closed = true
+    false
+  
+  template: (data = {})->
+    Backbone.Templates[@templateName] _.extend(data,
+      I18n: @I18n
+    )
+  
+  killEvent: (e)->
+    if e
+      e.stopImmediatePropagation()
+      e.stopPropagation()
+      e.preventDefault()
+  
+  detach: =>
+    <% if debug %>
+    console.log "#{@constructor.name}.detach"
+    <% end %>
+    
+    @$el.detach()
+

@@ -1,0 +1,41 @@
+<% debug = false %>
+
+Backbone.Storage = {}
+
+class Backbone.StorageModel extends Backbone.Model
+  
+  initialize: (attributes, options = {})->
+    
+    if 'id' of attributes and options._internalGetOrAdd isnt true
+      throw "'new' unauthorized with an ID"
+
+class Backbone.StorageCollection extends Backbone.Collection
+  
+  initialize: (models, options)->
+    @model = options.model
+    super models, options
+  
+  getOrAdd: (attributes)=>
+    <% if debug %>
+    console.log "#{@constructor.name}.getOrAdd", attributes
+    <% end %>
+    
+    if (found = @get(attributes.id))?
+      found.set attributes
+      found
+    else
+      newOne = new @model attributes,
+        _internalGetOrAdd: true
+      @add newOne
+      newOne
+  
+  reset: (models, options = {})->
+    <% if debug %>
+    console.log "#{@constructor.name}.reset", models, options
+    <% end %>
+    
+    if models.length < 1 or 'isNew' of models[0]
+      super models, options
+    else
+      super _.map(models, @getOrAdd), options
+
